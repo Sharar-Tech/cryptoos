@@ -1,0 +1,62 @@
+# render.yaml
+# Free backend hosting on Render.com
+# Docs: https://render.com/docs/blueprint-spec
+#
+# HOW TO USE:
+# 1. Push this repo to GitHub
+# 2. Go to https://render.com → New → Blueprint
+# 3. Connect your GitHub repo
+# 4. Render reads this file and sets everything up automatically
+
+services:
+  - type: web
+    name: cryptoos-backend
+    runtime: python
+    region: oregon          # Free tier region
+    plan: free              # FREE — no credit card needed
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    
+    # Environment variables — set these in Render dashboard
+    # (Never put real keys in this file)
+    envVars:
+      - key: EXCHANGE_API_KEY
+        sync: false         # You'll enter this in the Render UI
+
+      - key: EXCHANGE_API_SECRET
+        sync: false
+
+      - key: EXCHANGE
+        value: binance
+
+      - key: CAPITAL_USDT
+        value: "10"
+
+      - key: DAILY_LOSS_LIMIT_PCT
+        value: "5"
+
+      - key: TRADE_SIZE_PCT
+        value: "10"
+
+      - key: MAX_DAILY_TRADES
+        value: "20"
+
+      - key: STOP_LOSS_PCT
+        value: "2"
+
+      - key: TAKE_PROFIT_PCT
+        value: "3"
+
+      - key: DEFAULT_SYMBOL
+        value: "BTC/USDT"
+
+      - key: DB_PATH
+        value: "/var/data/cryptoos.db"
+
+    # Persistent disk for SQLite database
+    # Free tier: 1GB disk
+    disk:
+      name: cryptoos-data
+      mountPath: /var/data
+      sizeGB: 1

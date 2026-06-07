@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CryptoOS — Trading Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #050810;
+    --surface: #0a0f1e;
+    --surface2: #0f1628;
+    --border: #1a2540;
+    --border2: #243050;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font-mono: 'Space Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #root { position: relative; z-index: 1; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,15,30,0.95);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  }
+
+  .paper-badge {
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: var(--yellow);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* Layout */
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,229,255,0.3), transparent);
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Stats row */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .green { color: var(--accent3); }
+  .red { color: var(--red); }
+  .cyan { color: var(--accent); }
+  .yellow { color: var(--yellow); }
+
+  /* Control toggles */
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .module-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .module-row.active {
+    border-color: rgba(0,229,255,0.3);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .module-row.danger.active {
+    border-color: rgba(239,68,68,0.3);
+    background: rgba(239,68,68,0.04);
+  }
+
+  .module-info { flex: 1; }
+  .module-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .module-desc {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Toggle switch */
+  .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+
+  .toggle {
+    position: relative;
+    width: 44px; height: 24px;
+    cursor: pointer;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border2);
+    border-radius: 24px;
+    transition: 0.3s;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 18px; height: 18px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+
+  .toggle.on .toggle-track { background: var(--accent3); }
+  .toggle.on .toggle-thumb { transform: translateX(20px); background: white; }
+  .toggle.danger.on .toggle-track { background: var(--red); }
+
+  .toggle-label { font-size: 11px; color: var(--muted); min-width: 24px; }
+  .toggle.on .toggle-label { color: var(--accent3); }
+
+  /* Prices */
+  .prices-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .price-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .price-sym {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .price-val {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  /* Trades table */
+  .trades-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .trade-row {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .trade-side-buy {
+    background: rgba(16,185,129,0.15);
+    color: var(--accent3);
+    border: 1px solid rgba(16,185,129,0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .trade-side-sell {
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .trade-pnl-pos { color: var(--accent3); font-weight: 700; }
+  .trade-pnl-neg { color: var(--red); font-weight: 700; }
+
+  /* Logs */
+  .log-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+
+  .log-row {
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    background: var(--surface2);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .log-row.info { border-left-color: var(--accent); }
+  .log-row.warn { border-left-color: var(--yellow); }
+  .log-row.error { border-left-color: var(--red); background: rgba(239,68,68,0.05); }
+
+  .log-time { color: var(--muted); white-space: nowrap; font-size: 10px; }
+  .log-msg { color: var(--text); word-break: break-word; }
+
+  /* Risk bar */
+  .risk-bar-wrap { margin-top: 10px; }
+  .risk-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .risk-bar-track { height: 6px; background: var(--border2); border-radius: 6px; overflow: hidden; }
+  .risk-bar-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn-primary:hover { filter: brightness(1.1); }
+
+  .btn-danger {
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Settings panel */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .input-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .input-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .input-field {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .input-field:focus { border-color: var(--accent); }
+
+  /* Canvas mini chart */
+  canvas { border-radius: 8px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  .empty { color: var(--muted); font-size: 12px; text-align: center; padding: 20px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: rgba(0,229,255,0.1);
+    border-color: rgba(0,229,255,0.3);
+    color: var(--accent);
+  }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Alert */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .alert-warn {
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: var(--yellow);
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+// ── Config ─────────────────────────────────────────────────────────────────
+// Always points to local backend. When deployed to Render, update this one line:
+const API_BASE = 'http://localhost:8000';
+const WS_URL   = 'ws://localhost:8000/ws';
+
+// ── API Helper ──────────────────────────────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API_BASE + path, opts);
+    return await r.json();
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// ── Sparkline Chart ─────────────────────────────────────────────────────────
+function Sparkline({ data, color = '#00e5ff', height = 50 }) {
+  const ref = React.useRef();
+  React.useEffect(() => {
+    const c = ref.current;
+    if (!c || !data || data.length < 2) return;
+    const ctx = c.getContext('2d');
+    const w = c.width, h = c.height;
+    ctx.clearRect(0, 0, w, h);
+    const mn = Math.min(...data), mx = Math.max(...data);
+    const range = mx - mn || 1;
+    const pts = data.map((v, i) => [
+      (i / (data.length - 1)) * w,
+      h - ((v - mn) / range) * (h - 8) - 4
+    ]);
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, color + '33');
+    grad.addColorStop(1, color + '00');
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], h);
+    pts.forEach(p => ctx.lineTo(p[0], p[1]));
+    ctx.lineTo(pts[pts.length - 1][0], h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // Line
+    ctx.beginPath();
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }, [data, color]);
+  return <canvas ref={ref} width={280} height={height} style={{width:'100%', height:height}} />;
+}
+
+// ── Toggle Component ────────────────────────────────────────────────────────
+function Toggle({ on, onToggle, danger }) {
+  return (
+    <div className={`toggle ${on ? 'on' : ''} ${danger ? 'danger' : ''}`} onClick={onToggle}>
+      <div className="toggle-track" />
+      <div className="toggle-thumb" />
+    </div>
+  );
+}
+
+// ── Main App ────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = React.useState('dashboard');
+  const [liveData, setLiveData] = React.useState(null);
+  const [botState, setBotState] = React.useState({ spot: false, futures: false, staking: false, paper_mode: true });
+  const [backendOnline, setBackendOnline] = React.useState(false);
+  const [trades, setTrades] = React.useState([]);
+  const [logs, setLogs] = React.useState([]);
+  const [pnlHistory, setPnlHistory] = React.useState([]);
+  const [wsStatus, setWsStatus] = React.useState('connecting');
+  const [capital, setCapital] = React.useState('10');
+  const [saved, setSaved] = React.useState(false);
+  const wsRef = React.useRef(null);
+
+  // Check backend is reachable on mount
+  React.useEffect(() => {
+    api('/health').then(r => {
+      if (r.status === 'ok') setBackendOnline(true);
+    });
+  }, []);
+
+  // WebSocket connection
+  React.useEffect(() => {
+    let retryTimeout;
+
+    function connect() {
+      try {
+        const ws = new WebSocket(WS_URL);
+        wsRef.current = ws;
+
+        ws.onopen = () => setWsStatus('live');
+        ws.onmessage = (e) => {
+          const d = JSON.parse(e.data);
+          setLiveData(d);
+          setBackendOnline(true);
+          if (d.bot_state) setBotState(d.bot_state);
+        };
+        ws.onclose = () => {
+          setWsStatus('reconnecting');
+          retryTimeout = setTimeout(connect, 4000);
+        };
+        ws.onerror = () => {
+          setWsStatus('error');
+          setBackendOnline(false);
+        };
+      } catch {
+        setWsStatus('error');
+        setLiveData(getMockData());
+      }
+    }
+
+    connect();
+    return () => { clearTimeout(retryTimeout); wsRef.current?.close(); };
+  }, []);
+
+  // Poll trades & logs
+  React.useEffect(() => {
+    async function fetchAll() {
+      const t = await api('/trades?limit=20');
+      if (t.trades) setTrades(t.trades);
+      const l = await api('/logs?limit=30');
+      if (l.logs) setLogs(l.logs);
+    }
+    fetchAll();
+    const iv = setInterval(fetchAll, 8000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Build PnL history from closed trades
+  React.useEffect(() => {
+    const closed = trades.filter(t => t.status === 'closed');
+    let running = parseFloat(capital) || 10;
+    const hist = closed.map(t => { running += (t.pnl || 0); return running; });
+    if (hist.length) setPnlHistory(hist);
+  }, [trades, capital]);
+
+  function getMockData() {
+    return {
+      prices: { 'BTC-USDT': 67482.5, 'ETH-USDT': 3198.4, 'BNB-USDT': 581.2, 'SOL-USDT': 144.8 },
+      bot_state: { spot: false, futures: false, staking: false, paper_mode: true },
+      stats: { total_trades: 0, wins: 0, losses: 0, win_rate: 0, total_pnl: 0, open_trades: 0 },
+      risk: { daily_loss_usd: 0, daily_loss_limit_usd: 0.5, daily_trades: 0, max_daily_trades: 20, capital_usd: 10, safe_to_trade: true },
+    };
+  }
+
+  async function toggleModule(module) {
+    const current = botState[module];
+    const action = current ? 'stop' : 'start';
+    setBotState(prev => ({ ...prev, [module]: !current }));  // optimistic UI
+    const res = await api(`/bot/${module}/${action}`, 'POST');
+    if (res.error) {
+      setBotState(prev => ({ ...prev, [module]: current }));  // revert on error
+      alert('Could not reach backend. Make sure the server is running:\n\npython -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload');
+    }
+  }
+
+  async function saveCapital() {
+    const amt = parseFloat(capital);
+    if (!amt || amt <= 0) return;
+    await api('/settings/capital', 'POST', { amount: amt });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  const d = liveData || getMockData();
+  const prices = d.prices || {};
+  const state = botState;
+  const stats = d.stats || {};
+  const risk = d.risk || {};
+  const totalPnl = stats.total_pnl || 0;
+  const cap = risk.capital_usd || parseFloat(capital) || 10;
+  const lossUsed = risk.daily_loss_limit_usd > 0
+    ? Math.min((risk.daily_loss_usd / risk.daily_loss_limit_usd) * 100, 100)
+    : 0;
+
+  const anyBotOn = state.spot || state.futures || state.staking;
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="header">
+        <div className="logo">Crypto<span>OS</span></div>
+        <div className="header-status">
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <div className="live-dot" style={{background: wsStatus==='live' ? '#10b981' : wsStatus==='error' ? '#ef4444' : '#f59e0b'}} />
+            <span>{wsStatus === 'live' ? 'LIVE' : wsStatus === 'error' ? 'OFFLINE' : 'CONNECTING'}</span>
+          </div>
+          {state.paper_mode !== false && <span className="paper-badge">PAPER MODE</span>}
+        </div>
+      </div>
+
+      <div className="main">
+        {/* Tabs */}
+        <div className="tabs">
+          {['dashboard','control','trades','logs','settings'].map(t => (
+            <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+              {t.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Backend offline warning */}
+        {!backendOnline && (
+          <div style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12,color:'#f59e0b'}}>
+            ⚠️ Backend not detected. Run: <code style={{background:'rgba(0,0,0,0.3)',padding:'2px 6px',borderRadius:4}}>python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload</code> in the backend folder, then refresh this page.
+          </div>
+        )}
+
+        {/* ── DASHBOARD TAB ─────────────────────────── */}
+        {tab === 'dashboard' && (
+          <>
+            {/* Stats */}
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-label">Capital</div>
+                <div className="stat-value cyan">${cap.toFixed(2)}</div>
+                <div className="stat-sub">≈ KES {(cap * 130).toFixed(0)}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Total PnL</div>
+                <div className={`stat-value ${totalPnl >= 0 ? 'green' : 'red'}`}>
+                  {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(4)}
+                </div>
+                <div className="stat-sub">{stats.total_trades || 0} trades</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Win Rate</div>
+                <div className="stat-value green">{stats.win_rate || 0}%</div>
+                <div className="stat-sub">{stats.wins || 0}W / {stats.losses || 0}L</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Open Trades</div>
+                <div className="stat-value cyan">{stats.open_trades || 0}</div>
+                <div className="stat-sub">Active positions</div>
+              </div>
+            </div>
+
+            {/* PnL Chart */}
+            {pnlHistory.length > 1 && (
+              <div className="card">
+                <div className="card-title">📈 Portfolio Growth</div>
+                <Sparkline data={pnlHistory} color={totalPnl >= 0 ? '#10b981' : '#ef4444'} height={70} />
+              </div>
+            )}
+
+            {/* Live Prices */}
+            <div className="card">
+              <div className="card-title">⚡ Live Prices</div>
+              <div className="prices-grid">
+                {Object.entries(prices).map(([sym, price]) => (
+                  <div key={sym} className="price-item">
+                    <div className="price-sym">{sym.replace('-USDT', '')}</div>
+                    <div className="price-val cyan">${Number(price).toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk Overview */}
+            <div className="card">
+              <div className="card-title">🛡️ Risk Overview</div>
+              <div className="stats-grid" style={{marginBottom:12}}>
+                <div className="stat-card">
+                  <div className="stat-label">Daily Loss</div>
+                  <div className={`stat-value ${risk.safe_to_trade ? 'green' : 'red'}`}>
+                    ${(risk.daily_loss_usd || 0).toFixed(4)}
+                  </div>
+                  <div className="stat-sub">Limit: ${(risk.daily_loss_limit_usd || 0).toFixed(4)}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Today's Trades</div>
+                  <div className="stat-value cyan">{risk.daily_trades || 0}</div>
+                  <div className="stat-sub">Max: {risk.max_daily_trades || 20}</div>
+                </div>
+              </div>
+              <div className="risk-bar-wrap">
+                <div className="risk-bar-label">
+                  <span>Daily Loss Used</span>
+                  <span>{lossUsed.toFixed(1)}%</span>
+                </div>
+                <div className="risk-bar-track">
+                  <div className="risk-bar-fill" style={{
+                    width: `${lossUsed}%`,
+                    background: lossUsed > 75 ? '#ef4444' : lossUsed > 40 ? '#f59e0b' : '#10b981'
+                  }} />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── CONTROL TAB ───────────────────────────── */}
+        {tab === 'control' && (
+          <>
+            <div className="alert alert-warn">
+              ⚠️ Paper Mode is ON by default. Connect real API keys in Settings to go live.
+            </div>
+
+            <div className="card">
+              <div className="card-title">🎛️ Module Control</div>
+              <div className="module-grid">
+                <div className={`module-row ${state.spot ? 'active' : ''}`}>
+                  <div className="module-info">
+                    <div className="module-name">Spot Trading</div>
+                    <div className="module-desc">MA crossover strategy • BTC/USDT • 10s intervals</div>
+                  </div>
+                  <div className="toggle-wrap">
+                    <span className={`toggle-label ${state.spot ? 'green' : ''}`}>{state.spot ? 'ON' : 'OFF'}</span>
+                    <Toggle on={state.spot} onToggle={() => toggleModule('spot')} />
+                  </div>
+                </div>
+
+                <div className={`module-row danger ${state.futures ? 'active' : ''}`}>
+                  <div className="module-info">
+                    <div className="module-name">Futures Trading</div>
+                    <div className="module-desc red">⚠️ High risk — use with caution, leverage involved</div>
+                  </div>
+                  <div className="toggle-wrap">
+                    <span className={`toggle-label ${state.futures ? 'red' : ''}`}>{state.futures ? 'ON' : 'OFF'}</span>
+                    <Toggle on={state.futures} onToggle={() => toggleModule('futures')} danger />
+                  </div>
+                </div>
+
+                <div className={`module-row ${state.staking ? 'active' : ''}`}>
+                  <div className="module-info">
+                    <div className="module-name">Staking Tracker</div>
+                    <div className="module-desc">Track APR rewards automatically</div>
+                  </div>
+                  <div className="toggle-wrap">
+                    <span className={`toggle-label ${state.staking ? 'green' : ''}`}>{state.staking ? 'ON' : 'OFF'}</span>
+                    <Toggle on={state.staking} onToggle={() => toggleModule('staking')} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-title">⚡ Quick Actions</div>
+              <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                <button className="btn btn-danger" onClick={async () => {
+                  await api('/bot/spot/stop', 'POST');
+                  await api('/bot/futures/stop', 'POST');
+                  await api('/bot/staking/stop', 'POST');
+                  setBotState(prev => ({...prev, spot:false, futures:false, staking:false}));
+                }}>
+                  🛑 STOP ALL BOTS
+                </button>
+                <button className="btn btn-ghost" onClick={() => setTab('logs')}>
+                  📋 View Logs
+                </button>
+                <button className="btn btn-ghost" onClick={() => setTab('settings')}>
+                  ⚙️ Settings
+                </button>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="card">
+              <div className="card-title">📊 System Status</div>
+              <div className="trades-list">
+                {[
+                  { label: 'Backend API', ok: wsStatus !== 'error' },
+                  { label: 'Market Data Feed', ok: !!prices['BTC-USDT'] },
+                  { label: 'Risk Manager', ok: true },
+                  { label: 'Paper Mode', ok: state.paper_mode !== false, warn: true },
+                  { label: 'Safe to Trade', ok: risk.safe_to_trade },
+                ].map(s => (
+                  <div key={s.label} className="price-item">
+                    <span style={{color:'var(--muted)',fontSize:12}}>{s.label}</span>
+                    <span style={{fontSize:12,color: s.ok ? (s.warn ? '#f59e0b' : '#10b981') : '#ef4444',fontWeight:700}}>
+                      {s.ok ? '● ACTIVE' : '● OFFLINE'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── TRADES TAB ────────────────────────────── */}
+        {tab === 'trades' && (
+          <div className="card">
+            <div className="card-title">📈 Trade History</div>
+            {trades.length === 0 ? (
+              <div className="empty">No trades yet. Start the spot bot to begin trading.</div>
+            ) : (
+              <div className="trades-list">
+                {trades.map(t => (
+                  <div key={t.id} className="trade-row">
+                    <span className={t.side === 'buy' ? 'trade-side-buy' : 'trade-side-sell'}>
+                      {(t.side || '').toUpperCase()}
+                    </span>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700}}>{t.symbol}</div>
+                      <div style={{fontSize:10,color:'var(--muted)'}}>@ ${Number(t.price).toLocaleString()} {t.paper ? '· PAPER' : '· LIVE'}</div>
+                    </div>
+                    <span style={{fontSize:10,color:'var(--muted)'}}>
+                      {t.status === 'open' ? <span style={{color:'#f59e0b'}}>OPEN</span> : 'CLOSED'}
+                    </span>
+                    <span className={t.pnl >= 0 ? 'trade-pnl-pos' : 'trade-pnl-neg'}>
+                      {t.pnl > 0 ? '+' : ''}{(t.pnl || 0).toFixed(4)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── LOGS TAB ──────────────────────────────── */}
+        {tab === 'logs' && (
+          <div className="card">
+            <div className="card-title">🗒️ Bot Logs</div>
+            {logs.length === 0 ? (
+              <div className="empty">No logs yet.</div>
+            ) : (
+              <div className="log-list">
+                {logs.map(l => (
+                  <div key={l.id} className={`log-row ${l.level}`}>
+                    <span className="log-time">{(l.created_at || '').slice(11, 19)}</span>
+                    <span className="log-msg">{l.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── SETTINGS TAB ─────────────────────────── */}
+        {tab === 'settings' && (
+          <>
+            <div className="card">
+              <div className="card-title">💰 Capital & Trading</div>
+              <div className="settings-grid">
+                <div className="input-wrap">
+                  <label className="input-label">Capital (USDT)</label>
+                  <input className="input-field" type="number" value={capital} onChange={e => setCapital(e.target.value)} placeholder="10" />
+                </div>
+                <div className="input-wrap">
+                  <label className="input-label">≈ KES</label>
+                  <input className="input-field" readOnly value={(parseFloat(capital) * 130 || 0).toFixed(0)} />
+                </div>
+              </div>
+              <button className="btn btn-primary" style={{marginTop:14}} onClick={saveCapital}>
+                {saved ? '✅ Saved!' : '💾 Save Capital'}
+              </button>
+            </div>
+
+            <div className="card">
+              <div className="card-title">🔑 API Keys (Backend .env)</div>
+              <div className="alert alert-warn">
+                API keys are set in the backend <code>.env</code> file — NOT stored in this dashboard for security.
+                See the README for how to set them up safely.
+              </div>
+              <div className="trades-list">
+                {[
+                  'EXCHANGE_API_KEY=your_key_here',
+                  'EXCHANGE_API_SECRET=your_secret_here',
+                  'EXCHANGE=binance',
+                  'CAPITAL_USDT=10',
+                  'DAILY_LOSS_LIMIT_PCT=5',
+                ].map((line, i) => (
+                  <div key={i} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 12px',fontFamily:'monospace',fontSize:11,color:'var(--muted)'}}>
+                    {line}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-title">📚 Free Stack Being Used</div>
+              <div className="trades-list">
+                {[
+                  ['Backend Hosting', 'Render.com free tier', '✅'],
+                  ['Frontend Hosting', 'GitHub Pages (this file)', '✅'],
+                  ['Database', 'SQLite (on disk, free)', '✅'],
+                  ['Exchange', 'Binance / Bybit', '✅'],
+                  ['Domain', 'render.onrender.com (free)', '✅'],
+                  ['API Library', 'CCXT (open source)', '✅'],
+                ].map(([a, b, c]) => (
+                  <div key={a} className="price-item">
+                    <span style={{fontSize:11,color:'var(--muted)'}}>{a}</span>
+                    <span style={{fontSize:11}}>{c} {b}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
