@@ -30,6 +30,7 @@ class ControlEngine:
         self._load_state()
 
         # Step 2 — environment / .env always overrides the saved state
+        # This is the fix from the uploaded excerpt:
         # if PAPER_MODE=false is in .env, go live regardless of saved state
         self._apply_env_overrides()
 
@@ -75,7 +76,7 @@ class ControlEngine:
         live_mode = (env_val == "false")
 
         if live_mode and self._state["paper_mode"]:
-            logger.warning("PAPER_MODE=false detected — switching to LIVE trading")
+            logger.warning("PAPER_MODE=false detected in environment — switching to LIVE trading")
             self._state["paper_mode"] = False
 
         elif not live_mode and not self._state["paper_mode"]:
@@ -138,16 +139,16 @@ class ControlEngine:
     def get_state(self) -> dict:
         """Full state dict — sent to the dashboard via WebSocket."""
         return {
-            "spot":       self._state.get("spot", False),
-            "futures":    self._state.get("futures", False),
-            "staking":    self._state.get("staking", False),
-            "paper_mode": self._state.get("paper_mode", True),
-            "any_active": any([
-                self._state.get("spot", False),
-                self._state.get("futures", False),
-                self._state.get("staking", False),
-            ]),
-            "updated_at": datetime.utcnow().isoformat(),
+            "spot":         self._state.get("spot", False),
+            "futures":      self._state.get("futures", False),
+            "staking":      self._state.get("staking", False),
+            "paper_mode":   self._state.get("paper_mode", True),
+            "any_active":   any([
+                                self._state.get("spot", False),
+                                self._state.get("futures", False),
+                                self._state.get("staking", False),
+                            ]),
+            "updated_at":   datetime.utcnow().isoformat(),
         }
 
     def get_active_modules(self) -> list[str]:
