@@ -1,30 +1,62 @@
 """
 CryptoOS - Database
 SQLite layer. Auto-creates the database file and all tables on first run.
-Works locally (backend/cryptoos.db) and on Render (/var/data/cryptoos.db).
+Has a fallback path chain so it never crashes due to permission issues.
 """
 import sqlite3
 import os
 from datetime import datetime, timedelta
 
-DB_PATH = os.environ.get("DB_PATH", "cryptoos.db")
+
+def _resolve_db_path() -> str:
+    """
+    Try each path in order until we find one we can write to.
+    This makes the DB work on any platform without crashing.
+    """
+    candidates = [
+        # 1. Whatever is set in environment / .env
+        os.environ.get("DB_PATH", ""),
+        # 2. Render project folder (always writable)
+        "/opt/render/project/src/cryptoos.db",
+        # 3. Current working directory (works locally and on most servers)
+        os.path.join(os.getcwd(), "cryptoos.db"),
+        # 4. Same folder as this file
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "cryptoos.db"),
+        # 5. Temp folder — last resort, always writable
+        "/tmp/cryptoos.db",
+    ]
+
+    for path in candidates:
+        if not path:
+            continue
+        try:
+            db_dir = os.path.dirname(os.path.abspath(path))
+            # Try to create the directory if needed
+            if db_dir and not os.path.exists(db_dir):
+                os.makedirs(db_dir, exist_ok=True)
+            # Test we can actually write there
+            test_file = os.path.join(db_dir, ".write_test")
+            with open(test_file, "w") as f:
+                f.write("test")
+            os.remove(test_file)
+            print(f"[DB] Using database path: {path}")
+            return path
+        except Exception as e:
+            print(f"[DB] Cannot use path '{path}': {e} — trying next...")
+            continue
+
+    # Should never reach here but just in case
+    print("[DB] All paths failed — using in-memory database (data will not persist)")
+    return ":memory:"
+
+
+# Resolve the path once at module load time
+DB_PATH = _resolve_db_path()
 
 
 class Database:
     def __init__(self):
-        self._ensure_db_dir()
         self._init_db()
-
-    def _ensure_db_dir(self):
-        """Create the directory for the DB file if it doesn't exist."""
-        abs_path = os.path.abspath(DB_PATH)
-        db_dir = os.path.dirname(abs_path)
-        if db_dir and not os.path.exists(db_dir):
-            try:
-                os.makedirs(db_dir, exist_ok=True)
-                print(f"[DB] Created directory: {db_dir}")
-            except Exception as e:
-                print(f"[DB] Warning: could not create directory {db_dir}: {e}")
 
     def _conn(self):
         conn = sqlite3.connect(DB_PATH)
@@ -143,10 +175,10 @@ class Database:
 
     def get_stats(self) -> dict:
         conn = self._conn()
-        total     = conn.execute(
+        total = conn.execute(
             "SELECT COUNT(*) as c FROM trades WHERE status='closed'"
         ).fetchone()["c"]
-        wins      = conn.execute(
+        wins = conn.execute(
             "SELECT COUNT(*) as c FROM trades WHERE status='closed' AND pnl > 0"
         ).fetchone()["c"]
         total_pnl = conn.execute(

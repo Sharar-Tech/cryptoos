@@ -34,8 +34,4 @@ services:
       - key: PAPER_MODE
         value: "true"
       - key: DB_PATH
-        value: "/var/data/cryptoos.db"
-    disk:
-      name: cryptoos-data
-      mountPath: /var/data
-      sizeGB: 1
+        value: "/opt/render/project/src/cryptoos.db"
