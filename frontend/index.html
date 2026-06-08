@@ -475,8 +475,8 @@
 <script type="text/babel">
 // ── Config ─────────────────────────────────────────────────────────────────
 // Always points to local backend. When deployed to Render, update this one line:
-const API_BASE = 'http://localhost:8000';
-const WS_URL   = 'ws://localhost:8000/ws';
+const API_BASE = 'https://cryptoos.onrender.com';
+const WS_URL   = 'wss://cryptoos.onrender.com/ws';
 
 // ── API Helper ──────────────────────────────────────────────────────────────
 async function api(path, method = 'GET', body = null) {
