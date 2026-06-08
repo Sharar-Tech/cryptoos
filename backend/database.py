@@ -17,7 +17,8 @@ class Database:
 
     def _ensure_db_dir(self):
         """Create the directory for the DB file if it doesn't exist."""
-        db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+        abs_path = os.path.abspath(DB_PATH)
+        db_dir = os.path.dirname(abs_path)
         if db_dir and not os.path.exists(db_dir):
             try:
                 os.makedirs(db_dir, exist_ok=True)
@@ -95,7 +96,8 @@ class Database:
         conn = self._conn()
         cur = conn.execute(
             """INSERT INTO trades
-               (symbol, side, amount, price, pnl, strategy, module, status, paper, order_id, stop_loss, take_profit, leverage)
+               (symbol, side, amount, price, pnl, strategy, module,
+                status, paper, order_id, stop_loss, take_profit, leverage)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 trade["symbol"], trade["side"], trade["amount"], trade["price"],
@@ -115,7 +117,9 @@ class Database:
     def close_trade(self, trade_id: int, exit_price: float, pnl: float):
         conn = self._conn()
         conn.execute(
-            "UPDATE trades SET status='closed', exit_price=?, pnl=?, closed_at=datetime('now') WHERE id=?",
+            """UPDATE trades
+               SET status='closed', exit_price=?, pnl=?, closed_at=datetime('now')
+               WHERE id=?""",
             (exit_price, pnl, trade_id)
         )
         conn.commit()
@@ -131,16 +135,26 @@ class Database:
 
     def get_open_trades(self) -> list:
         conn = self._conn()
-        rows = conn.execute("SELECT * FROM trades WHERE status='open'").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM trades WHERE status='open'"
+        ).fetchall()
         conn.close()
         return [dict(r) for r in rows]
 
     def get_stats(self) -> dict:
         conn = self._conn()
-        total    = conn.execute("SELECT COUNT(*) as c FROM trades WHERE status='closed'").fetchone()["c"]
-        wins     = conn.execute("SELECT COUNT(*) as c FROM trades WHERE status='closed' AND pnl > 0").fetchone()["c"]
-        total_pnl = conn.execute("SELECT SUM(pnl) as s FROM trades WHERE status='closed'").fetchone()["s"] or 0
-        open_count = conn.execute("SELECT COUNT(*) as c FROM trades WHERE status='open'").fetchone()["c"]
+        total     = conn.execute(
+            "SELECT COUNT(*) as c FROM trades WHERE status='closed'"
+        ).fetchone()["c"]
+        wins      = conn.execute(
+            "SELECT COUNT(*) as c FROM trades WHERE status='closed' AND pnl > 0"
+        ).fetchone()["c"]
+        total_pnl = conn.execute(
+            "SELECT SUM(pnl) as s FROM trades WHERE status='closed'"
+        ).fetchone()["s"] or 0
+        open_count = conn.execute(
+            "SELECT COUNT(*) as c FROM trades WHERE status='open'"
+        ).fetchone()["c"]
         conn.close()
         win_rate = round((wins / total * 100) if total > 0 else 0, 1)
         return {
@@ -156,7 +170,8 @@ class Database:
         conn = self._conn()
         since = (datetime.utcnow() - timedelta(days=days)).isoformat()
         rows = conn.execute(
-            "SELECT * FROM portfolio_snapshots WHERE recorded_at > ? ORDER BY recorded_at",
+            """SELECT * FROM portfolio_snapshots
+               WHERE recorded_at > ? ORDER BY recorded_at""",
             (since,)
         ).fetchall()
         conn.close()
@@ -165,8 +180,15 @@ class Database:
     def save_portfolio_snapshot(self, data: dict):
         conn = self._conn()
         conn.execute(
-            "INSERT INTO portfolio_snapshots (total_usdt, btc_balance, eth_balance, pnl_today) VALUES (?,?,?,?)",
-            (data.get("total_usdt", 0), data.get("btc", 0), data.get("eth", 0), data.get("pnl_today", 0))
+            """INSERT INTO portfolio_snapshots
+               (total_usdt, btc_balance, eth_balance, pnl_today)
+               VALUES (?,?,?,?)""",
+            (
+                data.get("total_usdt", 0),
+                data.get("btc", 0),
+                data.get("eth", 0),
+                data.get("pnl_today", 0),
+            )
         )
         conn.commit()
         conn.close()
