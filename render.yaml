@@ -18,11 +18,11 @@ services:
       - key: EXCHANGE
         value: binance
       - key: CAPITAL_USDT
-        value: "7"
+        value: "7.69"
       - key: DAILY_LOSS_LIMIT_PCT
         value: "5"
       - key: TRADE_SIZE_PCT
-        value: "10"
+        value: "100"
       - key: MAX_DAILY_TRADES
         value: "20"
       - key: STOP_LOSS_PCT
